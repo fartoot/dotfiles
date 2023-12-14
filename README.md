@@ -8,3 +8,4 @@
 - TERMINAL > alacritty
 - SHELL > zsh (Powerlevel10k theme)
 - LAUNCHER > rofi
+- COMPOSITOR > picom
