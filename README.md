@@ -4,7 +4,7 @@
 ## Informations
 - OS > Linux mint
 - DE > xfce
-- WN > qtile
+- WM > qtile
 - TERMINAL > alacritty
 - SHELL > zsh (Powerlevel10k theme)
 - LAUNCHER > rofi
