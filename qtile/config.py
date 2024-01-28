@@ -1,4 +1,5 @@
 from libqtile import bar, layout, widget, hook, qtile
+
 from libqtile.config import Click, Drag, Group, Key, Match, hook, Screen, KeyChord
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
@@ -6,6 +7,13 @@ from libqtile.dgroups import simple_key_binder
 from time import sleep
 from Xlib import display as xdisplay
 import random
+from libqtile import hook
+import os
+import subprocess
+
+
+# V A R I A B L E S
+is_xampp_running = False
 
 
 # C O L O R S
@@ -19,6 +27,14 @@ text_second_color = "#b48ead"
 
 
 # F U N C T I O N S
+
+def run_xampp():
+    global is_xampp_running
+    if not is_xampp_running:
+        is_xampp_running = True
+        subprocess.run(["sudo","/opt/lampp/lampp","start"],shell=True)
+    else:
+        subprocess.run(["sudo","/opt/lampp/lampp","stop"],shell=True)
 
 
 def get_num_monitors():
@@ -86,9 +102,10 @@ keys = [
     # Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
     Key([mod], "c", lazy.window.kill(), desc="Kill focused window"),
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload the config"),
-    Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
-    Key([mod], "r", lazy.spawn("rofi -show run"), desc="Spawn a command using a prompt widget"),
-    # Key([mod], "p", lazy.spawn("sh -c ~/.config/rofi/scripts/power"), desc='powermenu'),
+    Key([mod, "control"], "q", lazy.spawn("powermenu"), desc="Power menu"),
+    Key([mod, "control"], "w", lazy.spawn("wifimenu"), desc="Wifi menu"),
+    Key([mod], "r", lazy.spawn("rofi -show drun"), desc="Spawn a command using a prompt widget"),
+    # Key([mod], "p", lazy.spawn("sh -c ~/.config/rofi/scripts/power"), desc='powermenu'),741 
     # Key([mod], "t", lazy.spawn("sh -c ~/.config/rofi/scripts/themes"), desc='theme_switcher'),
 
 # C U S T O M
@@ -107,6 +124,8 @@ keys = [
     Key([mod], "s", lazy.spawn("xfce4-screenshooter -r"), desc='Screenshot'),
     Key([mod], "v", lazy.spawn("code"), desc='Vscode'),
     Key([mod], "b", lazy.spawn("firefox"), desc='Firefox browser'),
+    Key([mod], "t", lazy.spawn("Todour"), desc='simple todo list'),
+    Key([mod], "x", lazy.function(run_xampp), desc='start xampp'),
     Key([mod, "mod1"],"space", lazy.next_screen(),desc='Next monitor')
 ]
 
@@ -248,7 +267,7 @@ for m in range(num_monitors):
 
 
                 widget.GroupBox(
-                    fontsize=24,
+                    fontsize=16,
                     borderwidth=3,
                     highlight_method='block',
                     active=text_primary_color,
@@ -278,18 +297,35 @@ for m in range(num_monitors):
                 ),
 
 
+                # widget.Image(
+                #     filename='~/.config/qtile/Assets/layout.png',
+                #     background="#353446"
+                # ),
+
+
+                # widget.CurrentLayout(
+                #     background='#353446',
+                #     foreground=text_primary_color,
+                #     fmt='{}',
+                #     font="JetBrains Mono Bold",
+                #     fontsize=13,
+                # ),
+
                 widget.Image(
-                    filename='~/.config/qtile/Assets/layout.png',
-                    background="#353446"
+                    filename='~/.config/qtile/Assets/Misc/wi-fi.png',
+                    background="#353446",
+                    margin_y=6,
+                    margin_x=5,
                 ),
-
-
-                widget.CurrentLayout(
+                widget.Wlan(
+                    # background = None,
                     background='#353446',
+                    interface = 'wlp0s20f3',
+                    format = '{essid}',
                     foreground=text_primary_color,
-                    fmt='{}',
                     font="JetBrains Mono Bold",
                     fontsize=13,
+                    disconnected_message = 'Disconnected'                
                 ),
 
 
@@ -338,6 +374,7 @@ for m in range(num_monitors):
 
                 widget.CPU(
                     background='#282738',
+                    format= 'CPU {load_percent}%',
                     fontsize=13,
                     font="JetBrains Mono Bold",
                     foreground=text_primary_color,
@@ -488,22 +525,47 @@ for m in range(num_monitors):
                 ),
 
 
-                widget.Image(
-                    filename='~/.config/qtile/Assets/Misc/clock.png',
-                    background='#282738',
-                    margin_y=6,
-                    margin_x=5,
-                ),
-
-
                 widget.Clock(
-                    format='%I:%M %p',
+                    format='%d/%m/%y',
                     background='#282738',
                     foreground=text_primary_color,
                     font="JetBrains Mono Bold",
                     fontsize=13,
                 ),
 
+
+                # widget.Clock(
+                #     format='%I:%M %p',
+                #     background='#282738',
+                #     foreground=text_primary_color,
+                #     font="JetBrains Mono Bold",
+                #     fontsize=13,
+                # ),
+
+                widget.Spacer(
+                    length=5,
+                    background='#282738',
+                    ),
+                
+                widget.Image(
+                    filename='~/.config/qtile/Assets/Misc/calendar.png',
+                    background='#282738',
+                    margin_y=6,
+                    margin_x=5,
+                ),
+                
+                widget.Spacer(
+                    length=5,
+                    background='#282738',
+                    ),
+
+                widget.Clock(
+                    format='%I:%M',
+                    background='#282738',
+                    foreground=text_primary_color,
+                    font="JetBrains Mono Bold",
+                    fontsize=13,
+                ),
 
                 widget.Spacer(
                     length=18,
@@ -513,7 +575,8 @@ for m in range(num_monitors):
             30,
             border_color = '#282738',
             border_width = [0,0,0,0],
-            margin = [15,60,6,60],
+            # margin = [15,60,6,60],
+            margin = [9,60,0,60],
 
         ),
         wallpaper=f'~/.config/qtile/wallpapers/wallpaper{random.randint(1, 6)}.jpg',
@@ -554,10 +617,7 @@ floating_layout = layout.Floating(
 
 
 
-from libqtile import hook
-# some other imports
-import os
-import subprocess
+
 # stuff
 @hook.subscribe.startup_once
 def autostart_once():
