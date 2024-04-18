@@ -119,12 +119,13 @@ keys = [
     # Key([], "XF86AudioNext", lazy.spawn("playerctl next"), desc='playerctl'),
     # Key(["mod1"], "b", lazy.spawn("brightnessctl set -10%"), desc='brightness UP'),
     # Key(["mod1"], "XF86MonBrightnessDown", lazy.spawn("brightnessctl s 10%-"), desc='brightness Down'),
-    Key([mod],"e", lazy.spawn("thunar"), desc='file manager'),
+    Key([mod],"e", lazy.spawn('alacritty --command bash -l -c "/home/fartoot/go/bin/lf;bash"'), desc='file manager'),
 	# Key([mod], "h", lazy.spawn("roficlip"), desc='clipboard'),
     Key([mod], "s", lazy.spawn("xfce4-screenshooter -r"), desc='Screenshot'),
     Key([mod], "v", lazy.spawn("code"), desc='Vscode'),
     Key([mod], "b", lazy.spawn("firefox"), desc='Firefox browser'),
     Key([mod], "t", lazy.spawn("Todour"), desc='simple todo list'),
+    Key([mod], "i", lazy.spawn("AppFlowy"), desc='AppFlowy'),
     Key([mod], "x", lazy.function(run_xampp), desc='start xampp'),
     Key([mod, "mod1"],"space", lazy.next_screen(),desc='Next monitor')
 ]
@@ -154,10 +155,6 @@ for i in groups:
                     lazy.window.togroup(i.name, switch_group=False),
                     desc="Switch to & move focused window to group {}".format(i.name),
                     ),
-                
-                
-                
-                
                 ]
             )
 
@@ -229,6 +226,30 @@ extension_defaults = [ widget_defaults.copy()
 
 def search():
     qtile.cmd_spawn("rofi -show run")
+    
+def is_sleep():
+    res = subprocess.run(["xset","q"],capture_output=True)
+
+    if "DPMS is Disabled" in str(res.stdout):
+        return True
+    
+    return False
+
+
+def go_sleep():
+    if is_sleep():
+        result = subprocess.run(["xset","s","on","dpms"])
+        if result.returncode == 0:
+            subprocess.run(["notify-send","Sleep ON"])
+        
+    else:
+        result = subprocess.run(["xset","s","off","-dpms"])
+        if result.returncode == 0:
+            subprocess.run(["notify-send","Sleep OFF"])
+    
+
+def networkManager():
+    qtile.cmd_spawn("nm-connection-editor")
 
 def power():
     qtile.cmd_spawn("sh -c ~/.config/rofi/scripts/power")
@@ -248,7 +269,8 @@ for m in range(num_monitors):
         Screen(
         top=bar.Bar(
             [
-				widget.Spacer(length=15,
+				widget.Spacer(
+                    length=18,
                     background='#282738',
                 ),
 
@@ -287,7 +309,7 @@ for m in range(num_monitors):
 
 
                 widget.Spacer(
-                    length=8,
+                    length=0,
                     background='#353446',
                 ),
 
@@ -311,11 +333,14 @@ for m in range(num_monitors):
                 #     fontsize=13,
                 # ),
 
+                
                 widget.Image(
                     filename='~/.config/qtile/Assets/Misc/wi-fi.png',
                     background="#353446",
                     margin_y=6,
                     margin_x=5,
+                    mouse_callbacks={"Button1": networkManager}
+
                 ),
                 widget.Wlan(
                     # background = None,
@@ -325,7 +350,24 @@ for m in range(num_monitors):
                     foreground=text_primary_color,
                     font="JetBrains Mono Bold",
                     fontsize=13,
-                    disconnected_message = 'Disconnected'                
+                    disconnected_message = 'Disconnected',
+                    mouse_callbacks={"Button1": networkManager}
+            
+                ),
+
+                widget.Image(
+                    filename='~/.config/qtile/Assets/1.png',
+                ),
+
+                widget.TextBox(
+                    text= "sleep" if is_sleep() else "awake",
+                    margin=2,
+                    foreground=text_primary_color,
+                    background='#353446',
+                    font="JetBrains Mono Bold",
+                    fontsize=13,
+                    mouse_callbacks={"Button1": go_sleep},
+                    
                 ),
 
 
@@ -365,8 +407,6 @@ for m in range(num_monitors):
                     fontsize=13,
 
                 ),
-
-
                 widget.Image(
                     filename='~/.config/qtile/Assets/3.png',
                 ),
@@ -380,13 +420,6 @@ for m in range(num_monitors):
                     foreground=text_primary_color,
 
                 ),
-
-
-                widget.TextBox(
-                    text=' ',
-                    background='#282738',
-                ),
-
 
                 widget.Image(
                     filename='~/.config/qtile/Assets/6.png',
@@ -423,7 +456,7 @@ for m in range(num_monitors):
 
 
                 widget.Spacer(
-                    length=-7,
+                    length=-6,
                     background='#353446',
                 ),
 
@@ -437,20 +470,37 @@ for m in range(num_monitors):
                     update_interval=5,
                 ),
 
-
                 # widget.Image(
                 # filename='~/.config/qtile/Assets/Drop2.png',
                 # ),
 
+                widget.Image(
+                    filename='~/.config/qtile/Assets/2.png',
+                ),
 
-
+                widget.Spacer(
+                    length=0,
+                    background='#353446',
+                ),
+                
+                widget.Net(
+                    background='#353446',
+                    format='{down:.0f}{down_suffix} ↓↑ {up:.0f}{up_suffix}',
+                    foreground=text_primary_color,
+                    font="JetBrains Mono Bold",
+                    fontsize=13,
+                    update_interval=5,
+                    
+                    ),
+                
+                
                 widget.Image(
                     filename='~/.config/qtile/Assets/2.png',
                 ),
 
 
                 widget.Spacer(
-                    length=8,
+                    length=0,
                     background='#353446',
                 ),
 
@@ -477,7 +527,7 @@ for m in range(num_monitors):
 
 
                 widget.Spacer(
-                    length=8,
+                    length=0,
                     background='#353446',
                 ),
 
@@ -648,3 +698,5 @@ wmname = "LG3D"
 
 
 # E O F
+
+
