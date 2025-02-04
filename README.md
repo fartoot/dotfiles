@@ -6,6 +6,8 @@
 - DE > xfce
 - WM > qtile
 - TERMINAL > alacritty
+- FILE MANAGER > ~~LF~~ yazi
 - SHELL > zsh (Powerlevel10k theme)
+- EDITOR > ~~VScode~~, ZED, VIM
 - LAUNCHER > rofi
 - COMPOSITOR > picom
