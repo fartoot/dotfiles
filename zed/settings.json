@@ -1,0 +1,102 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run the `open default settings` command
+// from the command palette or from `Zed` application menu.
+{
+	// "features": {
+	//   "inline_completion_provider": "copilot"
+	// },
+	"collaboration_panel": {
+		"button": false
+	},
+	"tab_size": 2,
+	"cursor_blink": false,
+
+	"terminal": {
+		"dock_anchor": "expanded", // Makes the terminal pane take up the full screen
+		"line_height": {
+			"custom": 1 // prevents gaps between the ascii borders and lets you fit more on screen
+		}
+	},
+	"assistant": {
+		"default_model": {
+			"provider": "zed.dev",
+			"model": "claude-3-5-sonnet-latest"
+		},
+		"version": "2"
+	},
+	"telemetry": {
+		"diagnostics": false,
+		"metrics": false
+	},
+	"file_types": {
+		"PHP": ["blade.php", "php"]
+	},
+	"project_panel": {
+		"dock": "left"
+	},
+	"vim_mode": true,
+	"relative_line_numbers": true,
+	"soft_wrap": "editor_width",
+	"scrollbar": {
+		"show": "never"
+	},
+	"gutter": {
+		"folds": false,
+		"code_actions": false,
+		"runnables": false
+	},
+	"ui_font_size": 16,
+	"font_family": "Droid Sans Mono",
+	"buffer_font_size": 16,
+	"theme": {
+		"mode": "system",
+		"light": "One Light",
+		"dark": "Catppuccin Mocha - No Italics"
+	},
+	"autosave": {
+		"after_delay": {
+			"milliseconds": 1000
+		}
+	},
+	"formatter": {
+		"language_server": {
+			"name": "biome"
+		}
+	},
+	"languages": {
+		"Python": {
+			"language_servers": ["pyright", "ruff"],
+			// "formatter": {
+			//   "external": {
+			//     "command": "black",
+			//     "arguments": ["-"]
+			//   }
+			// },
+			"format_on_save": "on"
+		},
+		"PHP": {
+			"language_servers": ["intelephense", "!phpactor", "..."],
+			"formatter": {
+				"external": {
+					"command": "blade-formatter",
+					"arguments": ["{buffer_path}"]
+				}
+			}
+		}
+	},
+	// to use the venv
+	"lsp": {
+		"pyright": {
+			"settings": {
+				"python": {
+					"pythonPath": ".venv/bin/python"
+				}
+			}
+		}
+	}
+}

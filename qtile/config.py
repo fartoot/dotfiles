@@ -1,32 +1,88 @@
 from libqtile import bar, layout, widget, hook, qtile
-
 from libqtile.config import Click, Drag, Group, Key, Match, hook, Screen, KeyChord
 from libqtile.lazy import lazy
-from libqtile.utils import guess_terminal
-from libqtile.dgroups import simple_key_binder
-from time import sleep
 from Xlib import display as xdisplay
 import random
 from libqtile import hook
 import os
 import subprocess
+import imaplib
+import os
+from dotenv import load_dotenv
+import imaplib
+import re
+from libqtile.widget import base
 
+load_dotenv()
 
 # V A R I A B L E S
 is_xampp_running = False
+qtile_path = os.path.dirname(os.path.realpath(__file__))
+auto_fullscreen = True
+focus_on_window_activation = "smart"
+reconfigure_screens = True
 
+# If things like steam games want to auto-minimize themselves when losing
+# focus, should we respect this or not?
+auto_minimize = True
+
+# When using the Wayland backend, this can be used to configure input devices.
+wl_input_rules = None
+
+# Set window manager name for Java UI toolkit compatibility
+# LG3D is used since it's a recognized WM name in Java's compatibility list
+# This ensures better compatibility with Java applications
+wmname = "LG3D"
 
 # C O L O R S
+
 text_primary_color = "#88C0D0"
 text_second_color = "#b48ead"
 
+# W A L L P A P E R S
+
+wallpapers = os.listdir(qtile_path + "/wallpapers")
 
 
+# G M A I L
+
+class GmailCheckerx(base.ThreadPoolText):
+    defaults = [
+        ("update_interval", 900, "Update time in seconds."),
+        ("username", None, "username"),
+        ("password", None, "password"),
+        ("email_path", "INBOX", "email_path"),
+        ("display_fmt", "box[{0}],unseen[{1}]", "Display format"),
+        ("status_only_unseen", True, "Only show unseen messages"),
+    ]
+
+    def __init__(self, **config):
+        base.ThreadPoolText.__init__(self, "", **config)
+        self.add_defaults(GmailCheckerx.defaults)
+
+    def poll(self):
+        self.gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+        self.gmail.login(self.username, self.password)
+        answer, raw_data = self.gmail.status(self.email_path, "(MESSAGES UNSEEN)")
+        if answer == "OK":
+            dec = raw_data[0].decode()
+            count = int(re.search(r"UNSEEN\s+(\d+)", dec).group(1))
+            if count:
+                subprocess.run(["notify-send","New Emails Available"])
+            return f"Emails ({count})"  
+        else:
+            return "UNKNOWN ERROR"
 
 
 
 
 # F U N C T I O N S
+
+@hook.subscribe.startup_once
+def autostart_once():
+    home = os.path.expanduser(qtile_path + '/autostart.sh') # path to my script, under my user directory
+    subprocess.call([home])
+    subprocess.run(["xset","s","off","-dpms"])
 
 def run_xampp():
     global is_xampp_running
@@ -36,6 +92,16 @@ def run_xampp():
     else:
         subprocess.run(["sudo","/opt/lampp/lampp","stop"],shell=True)
 
+
+def float_terminal(qtile):
+    qtile.cmd_spawn(terminal + " --class=floating_term")
+    def float_and_resize(window):
+        if window.window.get_wm_class()[0] == 'floating_term':
+            window.floating = True
+            window.cmd_set_size_floating(900, 600)
+            window.cmd_center()
+            qtile.current_screen.group.layout_all()
+    hook.subscribe.client_new(float_and_resize)
 
 def get_num_monitors():
     num_monitors = 0
@@ -61,7 +127,15 @@ def get_num_monitors():
 
 num_monitors = get_num_monitors()
 
+def search():
+    qtile.cmd_spawn("rofi -show run")
 
+
+def networkManager():
+    qtile.cmd_spawn("nm-connection-editor")
+
+def power():
+    qtile.cmd_spawn("sh -c ~/.config/rofi/scripts/power")
 
 
 mod = "mod4"
@@ -71,10 +145,8 @@ terminal = "alacritty"
 # █░█ ██▄ ░█░ █▄█ █ █░▀█ █▄▀ ▄█
 
 
-
-
 keys = [
-#
+  
 #  D E F A U L T
 
     Key([mod], "h", lazy.layout.left(), desc="Move focus to left"),
@@ -90,7 +162,7 @@ keys = [
     Key([mod, "shift"], "l", lazy.layout.grow_right(), desc="Grow window to the right"),
     Key([mod, "shift"], "j", lazy.layout.grow_down(), desc="Grow window down"),
     Key([mod, "shift"], "k", lazy.layout.grow_up(), desc="Grow window up"),
-    # Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
+    Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
     Key([mod], "f", lazy.window.toggle_fullscreen()),
     Key(
         [mod, "shift"],
@@ -99,32 +171,28 @@ keys = [
         desc="Toggle between split and unsplit sides of stack",
     ),
     Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
-    # Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
+    Key([mod], "o", lazy.function(float_terminal), desc="Launch terminal"),
     Key([mod], "c", lazy.window.kill(), desc="Kill focused window"),
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload the config"),
     Key([mod, "control"], "q", lazy.spawn("powermenu"), desc="Power menu"),
     Key([mod, "control"], "w", lazy.spawn("wifimenu"), desc="Wifi menu"),
     Key([mod], "r", lazy.spawn("rofi -show drun"), desc="Spawn a command using a prompt widget"),
-    # Key([mod], "p", lazy.spawn("sh -c ~/.config/rofi/scripts/power"), desc='powermenu'),741 
-    # Key([mod], "t", lazy.spawn("sh -c ~/.config/rofi/scripts/themes"), desc='theme_switcher'),
 
 # C U S T O M
 
-    Key(["mod1"], "equal", lazy.spawn("amixer set Master 5%+ unmute"), desc='Volume Up'),
-    Key(["mod1"], "minus", lazy.spawn("amixer set Master 5%- unmute"), desc='Volume Down'),
-    # Key([], 'XF86MonBrightnessUp',   lazy.function(backlight('inc'))),
-    # Key([], 'XF86MonBrightnessDown', lazy.function(backlight('dec'))),
-    # Key([], "XF86AudioPlay", lazy.spawn("playerctl play-pause"), desc='playerctl'),
-    # Key([], "XF86AudioPrev", lazy.spawn("playerctl previous"), desc='playerctl'),
-    # Key([], "XF86AudioNext", lazy.spawn("playerctl next"), desc='playerctl'),
-    # Key(["mod1"], "b", lazy.spawn("brightnessctl set -10%"), desc='brightness UP'),
-    # Key(["mod1"], "XF86MonBrightnessDown", lazy.spawn("brightnessctl s 10%-"), desc='brightness Down'),
-    Key([mod],"e", lazy.spawn('alacritty --command bash -l -c "/home/fartoot/go/bin/lf;bash"'), desc='file manager'),
-	# Key([mod], "h", lazy.spawn("roficlip"), desc='clipboard'),
+    Key([], "XF86MonBrightnessUp", lazy.spawn("brightnessctl set +5%")),
+    Key([], "XF86MonBrightnessDown", lazy.spawn("brightnessctl set 5%-")),
+    Key([], "XF86AudioRaiseVolume", lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ +10%")),
+    Key([], "XF86AudioLowerVolume", lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ -10%")),
+    Key([], "XF86AudioMute", lazy.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle")),
+    Key([mod],"e", lazy.spawn('alacritty -e zsh -i -c "y; exec zsh"'), desc='file manager'),
     Key([mod], "s", lazy.spawn("xfce4-screenshooter -r"), desc='Screenshot'),
     Key([mod], "v", lazy.spawn("code"), desc='Vscode'),
-    Key([mod], "b", lazy.spawn("firefox"), desc='Firefox browser'),
-    Key([mod], "t", lazy.spawn("Todour"), desc='simple todo list'),
+    Key([mod], "z", lazy.spawn("zed"), desc='Zed'),
+    Key([mod], "m", lazy.spawn("rhythmbox"), desc='Rhythmbox | Music Player'),
+    Key([mod], "b", lazy.spawn("brave-browser"), desc='Brave browser'),
+    # Key([mod], "t", lazy.spawn("Todour"), desc='simple todo list'),
+    # Key([mod], "t", lazy.spawn("thunar"), desc='Thunar'),
     Key([mod], "i", lazy.spawn("AppFlowy"), desc='AppFlowy'),
     Key([mod], "x", lazy.function(run_xampp), desc='start xampp'),
     Key([mod, "mod1"],"space", lazy.next_screen(),desc='Next monitor')
@@ -159,13 +227,7 @@ for i in groups:
             )
 
 
-
-
 # L A Y O U T S
-
-
-
-
 layouts = [
     layout.Columns(
         margin= 10,
@@ -173,45 +235,7 @@ layouts = [
 	    border_normal="#594656" ,
         border_width=3,
     ),
-
-    # layout.Max(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-	#     margin=10,
-	#     border_width=0,
-    # ),
-
-    # layout.Floating(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-	#     margin=10,
-	#     border_width=0,
-	# ),
-    # Try more layouts by unleashing below layouts
-   #  layout.Stack(num_stacks=2),
-   #  layout.Bsp(),
-    #   layout.Matrix(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-	#     margin=10,
-	#     border_width=0,
-	# ),
-    # layout.MonadTall(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-    #     margin=10,
-	#     border_width=0,
-	# ),
-    # layout.MonadWide(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-	#     margin=10,
-	#     border_width=0,
-	# ),
-   #  layout.RatioTile(),
-    #  layout.Tile(	border_focus='#1F1D2E',
-	#     border_normal='#1F1D2E',
-    # ),
-   #  layout.TreeTab(),
-   #  layout.VerticalTile(),
-   #  layout.Zoomy(),
 ]
-
 
 
 widget_defaults = dict(
@@ -219,49 +243,18 @@ widget_defaults = dict(
     fontsize=12,
     padding=3,
 )
-extension_defaults = [ widget_defaults.copy()
-        ]
+extension_defaults = [ widget_defaults.copy() ]
 
 
 
-def search():
-    qtile.cmd_spawn("rofi -show run")
-    
-def is_sleep():
-    res = subprocess.run(["xset","q"],capture_output=True)
-
-    if "DPMS is Disabled" in str(res.stdout):
-        return True
-    
-    return False
-
-
-def go_sleep():
-    if is_sleep():
-        result = subprocess.run(["xset","s","on","dpms"])
-        if result.returncode == 0:
-            subprocess.run(["notify-send","Sleep ON"])
-        
-    else:
-        result = subprocess.run(["xset","s","off","-dpms"])
-        if result.returncode == 0:
-            subprocess.run(["notify-send","Sleep OFF"])
-    
-
-def networkManager():
-    qtile.cmd_spawn("nm-connection-editor")
-
-def power():
-    qtile.cmd_spawn("sh -c ~/.config/rofi/scripts/power")
 
 # █▄▄ ▄▀█ █▀█
 # █▄█ █▀█ █▀▄
 
 
-
 screens = []
 
-        
+
 # add bar to multiple screens
 
 for m in range(num_monitors):
@@ -274,19 +267,16 @@ for m in range(num_monitors):
                     background='#282738',
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/launch_Icon.png',
+                    filename=qtile_path + '/Assets/Misc/launch_Icon.png',
                     margin=2,
                     background='#282738',
                     mouse_callbacks={"Button1":power},
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/6.png',
+                    filename=qtile_path + '/Assets/Shapes/6.png',
                 ),
-
 
                 widget.GroupBox(
                     fontsize=16,
@@ -307,35 +297,17 @@ for m in range(num_monitors):
                     disable_drag=True,
                  ),
 
-
                 widget.Spacer(
                     length=0,
                     background='#353446',
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/1.png',
+                    filename= qtile_path + '/Assets/Shapes/1.png',
                 ),
 
-
-                # widget.Image(
-                #     filename='~/.config/qtile/Assets/layout.png',
-                #     background="#353446"
-                # ),
-
-
-                # widget.CurrentLayout(
-                #     background='#353446',
-                #     foreground=text_primary_color,
-                #     fmt='{}',
-                #     font="JetBrains Mono Bold",
-                #     fontsize=13,
-                # ),
-
-                
                 widget.Image(
-                    filename='~/.config/qtile/Assets/Misc/wi-fi.png',
+                    filename= qtile_path + '/Assets/Misc/wi-fi.png',
                     background="#353446",
                     margin_y=6,
                     margin_x=5,
@@ -343,7 +315,6 @@ for m in range(num_monitors):
 
                 ),
                 widget.Wlan(
-                    # background = None,
                     background='#353446',
                     interface = 'wlp0s20f3',
                     format = '{essid}',
@@ -352,32 +323,39 @@ for m in range(num_monitors):
                     fontsize=13,
                     disconnected_message = 'Disconnected',
                     mouse_callbacks={"Button1": networkManager}
-            
+                ),
+                
+                widget.Image(
+                    filename= qtile_path + '/Assets/Shapes/1.png',
                 ),
 
                 widget.Image(
-                    filename='~/.config/qtile/Assets/1.png',
+                    filename= qtile_path + '/Assets/Misc/mail.png',
+                    background="#353446",
+                    margin_y=6,
+                    margin_x=5,
+                    mouse_callbacks={"Button1": networkManager}
                 ),
-
-                widget.TextBox(
-                    text= "sleep" if is_sleep() else "awake",
-                    margin=2,
-                    foreground=text_primary_color,
+                
+                GmailCheckerx(
+                    username=os.getenv("EMAIL"),
+                    password=os.getenv("PASS"),
+                    email_path=f'"{os.getenv("EMAILKEYWORD")}"',
                     background='#353446',
                     font="JetBrains Mono Bold",
                     fontsize=13,
-                    mouse_callbacks={"Button1": go_sleep},
-                    
+                    foreground=text_primary_color,
+                    display_fmt='{0}',
+                    status_only_unseen=True,
+                    update_interval=900,
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/5.png',
+                    filename= qtile_path + '/Assets/Shapes/5.png',
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/search.png',
+                    filename= qtile_path + '/Assets/Misc/search.png',
                     margin=2,
                     background='#282738',
                     mouse_callbacks={"Button1": search},
@@ -392,11 +370,9 @@ for m in range(num_monitors):
                     mouse_callbacks={"Button1": search},
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/4.png',
+                    filename= qtile_path + '/Assets/Shapes/4.png',
                 ),
-
 
                 widget.WindowName(
                     background = '#353446',
@@ -405,12 +381,11 @@ for m in range(num_monitors):
                     foreground=text_second_color,
                     empty_group_string = 'Desktop',
                     fontsize=13,
-
                 ),
+
                 widget.Image(
-                    filename='~/.config/qtile/Assets/3.png',
+                    filename= qtile_path + '/Assets/Shapes/3.png',
                 ),
-
 
                 widget.CPU(
                     background='#282738',
@@ -418,48 +393,22 @@ for m in range(num_monitors):
                     fontsize=13,
                     font="JetBrains Mono Bold",
                     foreground=text_primary_color,
-
                 ),
 
                 widget.Image(
-                    filename='~/.config/qtile/Assets/6.png',
+                    filename= qtile_path + '/Assets/Shapes/6.png',
                     background='#353446',
                 ),
-
-
-                # widget.Image(
-                # filename='~/.config/qtile/Assets/Drop1.png',
-                # ),
-
-                # widget.Net(
-                # format=' {up}   {down} ',
-                # background='#353446',
-                # foreground=text_primary_color,
-                # font="JetBrains Mono Bold",
-                # prefix='k',
-                # ),
-
-                # widget.Image(
-                    # filename='~/.config/qtile/Assets/2.png',
-                # ),
-
-                # widget.Spacer(
-                    # length=8,
-                    # background='#353446',
-                # ),
-
 
                 widget.Image(
-                    filename='~/.config/qtile/Assets/Misc/ram.png',
+                    filename= qtile_path + '/Assets/Misc/ram.png',
                     background='#353446',
                 ),
-
 
                 widget.Spacer(
                     length=-6,
                     background='#353446',
                 ),
-
 
                 widget.Memory(
                     background='#353446',
@@ -470,19 +419,15 @@ for m in range(num_monitors):
                     update_interval=5,
                 ),
 
-                # widget.Image(
-                # filename='~/.config/qtile/Assets/Drop2.png',
-                # ),
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/2.png',
+                    filename= qtile_path + '/Assets/Shapes/2.png',
                 ),
 
                 widget.Spacer(
                     length=0,
                     background='#353446',
                 ),
-                
+
                 widget.Net(
                     background='#353446',
                     format='{down:.0f}{down_suffix} ↓↑ {up:.0f}{up_suffix}',
@@ -490,27 +435,23 @@ for m in range(num_monitors):
                     font="JetBrains Mono Bold",
                     fontsize=13,
                     update_interval=5,
-                    
-                    ),
-                
-                
-                widget.Image(
-                    filename='~/.config/qtile/Assets/2.png',
-                ),
 
+                    ),
+
+                widget.Image(
+                    filename= qtile_path + '/Assets/Shapes/2.png',
+                ),
 
                 widget.Spacer(
                     length=0,
                     background='#353446',
                 ),
 
-
                 widget.BatteryIcon(
-                    theme_path='~/.config/qtile/Assets/Battery/',
+                    theme_path= qtile_path + '/Assets/Battery/',
                     background='#353446',
                     scale=1,
                 ),
-
 
                 widget.Battery(
                     font='JetBrains Mono Bold',
@@ -520,60 +461,31 @@ for m in range(num_monitors):
                     fontsize=13,
                 ),
 
-
                 widget.Image(
-                    filename='~/.config/qtile/Assets/2.png',
+                    filename= qtile_path + '/Assets/Shapes/2.png',
                 ),
-
 
                 widget.Spacer(
                     length=0,
                     background='#353446',
                 ),
-
-
-                # widget.Battery(format=' {percent:2.0%}',
-                    # font="JetBrains Mono ExtraBold",
-                    # fontsize=12,
-                    # padding=10,
-                    # background='#353446',
-                # ),
-
-                # widget.Memory(format='﬙{MemUsed: .0f}{mm}',
-                    # font="JetBrains Mono Bold",
-                    # fontsize=12,
-                    # padding=10,
-                    # background='#4B4D66',
-                # ),
-
-                widget.Volume(
-                    font='JetBrainsMono Nerd Font',
-                    theme_path='~/.config/qtile/Assets/Volume/',
-                    emoji=True,
-                    fontsize=13,
-                    background='#353446',
-                ),
-
-
-                widget.Spacer(
-                    length=-5,
-                    background='#353446',
-                    ),
-
-
-                widget.Volume(
+                widget.PulseVolume(
                     font='JetBrains Mono Bold',
                     background='#353446',
                     foreground=text_primary_color,
                     fontsize=13,
+                    theme_path=  qtile_path + "/Assets/Volume",
                 ),
 
-
+                widget.Spacer(
+                    length=-10,
+                    background='#353446',
+                    ),
+                    
                 widget.Image(
-                    filename='~/.config/qtile/Assets/5.png',
+                    filename= qtile_path + '/Assets/Shapes/5.png',
                     background='#353446',
                 ),
-
 
                 widget.Clock(
                     format='%d/%m/%y',
@@ -583,27 +495,18 @@ for m in range(num_monitors):
                     fontsize=13,
                 ),
 
-
-                # widget.Clock(
-                #     format='%I:%M %p',
-                #     background='#282738',
-                #     foreground=text_primary_color,
-                #     font="JetBrains Mono Bold",
-                #     fontsize=13,
-                # ),
-
                 widget.Spacer(
                     length=5,
                     background='#282738',
                     ),
-                
+
                 widget.Image(
-                    filename='~/.config/qtile/Assets/Misc/calendar.png',
+                    filename= qtile_path + '/Assets/Misc/calendar.png',
                     background='#282738',
                     margin_y=6,
                     margin_x=5,
                 ),
-                
+
                 widget.Spacer(
                     length=5,
                     background='#282738',
@@ -626,14 +529,13 @@ for m in range(num_monitors):
             border_color = '#282738',
             border_width = [0,0,0,0],
             # margin = [15,60,6,60],
-            margin = [9,60,0,60],
+            margin = [10,60,0,60],
 
         ),
-        wallpaper=f'~/.config/qtile/wallpapers/wallpaper{random.randint(1, 6)}.jpg',
+        wallpaper=os.path.expanduser(f"{qtile_path}/wallpapers/{random.choice(wallpapers)}"),
         wallpaper_mode='stretch',
         ),
     )
-
 
 
 # Drag floating layouts.
@@ -663,40 +565,3 @@ floating_layout = layout.Floating(
         Match(title="pinentry"),  # GPG key password entry
     ]
 )
-
-
-
-
-
-# stuff
-@hook.subscribe.startup_once
-def autostart_once():
-    home = os.path.expanduser('~/.config/qtile/autostart.sh')# path to my script, under my user directory
-    subprocess.call([home])
-
-auto_fullscreen = True
-focus_on_window_activation = "smart"
-reconfigure_screens = True
-
-# If things like steam games want to auto-minimize themselves when losing
-# focus, should we respect this or not?
-auto_minimize = True
-
-# When using the Wayland backend, this can be used to configure input devices.
-wl_input_rules = None
-
-# XXX: Gasp! We're lying here. In fact, nobody really uses or cares about this
-# string besides java UI toolkits; you can see several discussions on the
-# mailing lists, GitHub issues, and other WM documentation that suggest setting
-# this string if your java app doesn't work correctly. We may as well just lie
-# and say that we're a working one by default.c
-#
-# We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
-# java that happens to be on java's whitelist.
-wmname = "LG3D"
-
-
-
-# E O F
-
-

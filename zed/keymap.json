@@ -1,0 +1,75 @@
+[
+	{
+		"context": "Terminal",
+		"bindings": {
+			"ctrl-shift-~": "workspace::NewCenterTerminal",
+			"ctrl-`": "workspace::ToggleBottomDock",
+			"ctrl-w": "pane::CloseActiveItem"
+		}
+	},
+	{
+		"context": "Editor",
+		"bindings": {
+			"ctrl-w": "pane::CloseActiveItem"
+		}
+	},
+	{
+		"context": "Workspace",
+		"bindings": {
+			"alt-s": [
+				"task::Spawn",
+				{
+					"task_name": "laravel start"
+				}
+			],
+			"ctrl-alt-o": [
+				"projects::OpenRecent",
+				{
+					"create_new_window": false
+				}
+			]
+		}
+	},
+	
+	//navigate on all panels
+	{
+		"context": "Dock || Terminal || Editor || ProjectPanel",
+		"bindings": {
+			"ctrl-h": ["workspace::ActivatePaneInDirection", "Left"],
+			"ctrl-l": ["workspace::ActivatePaneInDirection", "Right"],
+			"ctrl-k": ["workspace::ActivatePaneInDirection", "Up"],
+			"ctrl-j": ["workspace::ActivatePaneInDirection", "Down"]
+		}
+	},
+	
+	// file explorer
+	{
+		"context": "ProjectPanel && not_editing",
+		"bindings": {
+			"l": "project_panel::Open",
+			"r": "project_panel::Rename",
+			"c": "project_panel::Copy",
+			"p": "project_panel::Paste",
+			"d": "project_panel::Delete",
+			"x": "project_panel::Cut",
+			"a": "project_panel::NewFile", // to add new directory add / after the name like folder/
+			"shift-o": "project_panel::RevealInFileManager"
+			// "shift-y": "project_panel::CopyRelativePath",
+			// "g y": "project_panel::CopyPath"
+		}
+	},
+	
+	// toggle project panel
+	{
+		"context": "Workspace",
+		"bindings": {
+			"ctrl-shift-e": "workspace::ToggleLeftDock"
+		}
+	},
+	{
+		"context": "Editor",
+		"bindings": {
+			"ctrl-shift-e": "workspace::ToggleLeftDock"
+		}
+	}
+]
